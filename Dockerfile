@@ -11,4 +11,4 @@ COPY . .
 
 VOLUME ["/app/data"]
 
-CMD ["uv", "run", "__main__"]
+CMD ["uv", "run", "__main__.py"]
