@@ -11,4 +11,4 @@ COPY . .
 
 VOLUME ["/app/data"]
 
-CMD ["uv", "run", "python", "-m", "haffnertracker"]
+CMD ["uv", "run", "__main__"]
