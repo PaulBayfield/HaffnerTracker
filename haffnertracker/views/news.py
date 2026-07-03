@@ -1,4 +1,5 @@
 import math
+from urllib.parse import urlsplit, urlunsplit
 
 import discord
 
@@ -9,16 +10,37 @@ from .info import InfoView
 
 PAGE_SIZE = 5
 
+# Discord rejects button URLs longer than this, and some NewsAPI links carry huge tracking query strings.
+MAX_BUTTON_URL_LENGTH = 512
+
+
+def _safe_article_url(url: str) -> str | None:
+    if len(url) <= MAX_BUTTON_URL_LENGTH:
+        return url
+
+    stripped = urlunsplit(urlsplit(url)._replace(query="", fragment=""))
+    if len(stripped) <= MAX_BUTTON_URL_LENGTH:
+        return stripped
+
+    return None
+
 
 def _article_sections(articles: list[Article]) -> list[discord.ui.Item]:
     items: list[discord.ui.Item] = []
     for i, article in enumerate(articles):
         if i > 0:
             items.append(discord.ui.Separator())
+
+        url = _safe_article_url(article.url)
+        if url is not None:
+            accessory = discord.ui.Button(label="Read", style=discord.ButtonStyle.link, url=url)
+        else:
+            accessory = discord.ui.Button(label="Read", style=discord.ButtonStyle.secondary, disabled=True)
+
         items.append(
             discord.ui.Section(
                 f"**{article.title}**\n-# {article.source}",
-                accessory=discord.ui.Button(label="Read", style=discord.ButtonStyle.link, url=article.url),
+                accessory=accessory,
             )
         )
     return items
