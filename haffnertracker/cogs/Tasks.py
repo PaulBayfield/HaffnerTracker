@@ -35,7 +35,13 @@ class Tasks(commands.Cog):
             if await self.client.entities.news.is_seen(article.id):
                 continue
             await self.client.entities.news.mark_seen(
-                article.id, article.title, article.source, article.url, article.published_at
+                article.id,
+                article.title,
+                article.source,
+                article.url,
+                article.published_at,
+                article.description,
+                article.image_url,
             )
             new_articles.append(article)
 

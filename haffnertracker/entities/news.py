@@ -11,13 +11,31 @@ class News:
         cursor = await self.db.execute("SELECT 1 FROM seen_news WHERE id = ?", (article_id,))
         return await cursor.fetchone() is not None
 
-    async def mark_seen(self, article_id: str, title: str, source: str, url: str, published_at: str | None) -> None:
+    async def mark_seen(
+        self,
+        article_id: str,
+        title: str,
+        source: str,
+        url: str,
+        published_at: str | None,
+        description: str | None = None,
+        image_url: str | None = None,
+    ) -> None:
         await self.db.execute(
             """
-            INSERT OR IGNORE INTO seen_news (id, title, source, url, published_at, posted_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO seen_news (id, title, source, url, published_at, posted_at, description, image_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (article_id, title, source, url, published_at, datetime.now(timezone.utc).isoformat()),
+            (
+                article_id,
+                title,
+                source,
+                url,
+                published_at,
+                datetime.now(timezone.utc).isoformat(),
+                description,
+                image_url,
+            ),
         )
         await self.db.commit()
 

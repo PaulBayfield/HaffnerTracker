@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS seen_news (
     source TEXT NOT NULL,
     url TEXT NOT NULL,
     published_at TEXT,
-    posted_at TEXT NOT NULL
+    posted_at TEXT NOT NULL,
+    description TEXT,
+    image_url TEXT
 );
 
 CREATE TABLE IF NOT EXISTS alerts (
@@ -47,6 +49,18 @@ async def connect(path: str) -> aiosqlite.Connection:
     db.row_factory = aiosqlite.Row
 
     await db.executescript(SCHEMA)
+    await _migrate(db)
     await db.commit()
 
     return db
+
+
+async def _migrate(db: aiosqlite.Connection) -> None:
+    """Add columns introduced after a database was first created."""
+    cursor = await db.execute("PRAGMA table_info(seen_news)")
+    columns = {row["name"] for row in await cursor.fetchall()}
+
+    if "description" not in columns:
+        await db.execute("ALTER TABLE seen_news ADD COLUMN description TEXT")
+    if "image_url" not in columns:
+        await db.execute("ALTER TABLE seen_news ADD COLUMN image_url TEXT")

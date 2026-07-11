@@ -1,10 +1,11 @@
 import math
+
 from urllib.parse import urlsplit, urlunsplit
 
 import discord
 
 from ..entities.entities import Entities
-from ..services.news import Article
+from ..services.news import Article, parse_published_at
 from ..utils.constants import COLOR_NEUTRAL
 from .info import InfoView
 
@@ -25,6 +26,17 @@ def _safe_article_url(url: str) -> str | None:
     return None
 
 
+def _article_text(article: Article) -> str:
+    published = parse_published_at(article.published_at)
+    meta = f"-# {article.source} • <t:{int(published.timestamp())}:R>" if published else f"-# {article.source}"
+
+    lines = [f"**{article.title}**", meta]
+    if article.description:
+        lines.append(article.description)
+
+    return "\n".join(lines)
+
+
 def _article_sections(articles: list[Article]) -> list[discord.ui.Item]:
     items: list[discord.ui.Item] = []
     for i, article in enumerate(articles):
@@ -37,12 +49,12 @@ def _article_sections(articles: list[Article]) -> list[discord.ui.Item]:
         else:
             accessory = discord.ui.Button(label="Read", style=discord.ButtonStyle.secondary, disabled=True)
 
-        items.append(
-            discord.ui.Section(
-                f"**{article.title}**\n-# {article.source}",
-                accessory=accessory,
+        items.append(discord.ui.Section(_article_text(article), accessory=accessory))
+
+        if article.image_url:
+            items.append(
+                discord.ui.MediaGallery(discord.MediaGalleryItem(media=article.image_url, description=article.title))
             )
-        )
     return items
 
 
