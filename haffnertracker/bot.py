@@ -1,3 +1,5 @@
+import logging
+
 from os import environ, listdir
 from pathlib import Path
 
@@ -11,6 +13,8 @@ from .entities.entities import Entities
 from .utils.db import connect
 
 load_dotenv(dotenv_path=".env")
+
+logger = logging.getLogger(__name__)
 
 
 class Bot(commands.Bot):
@@ -42,15 +46,12 @@ class Bot(commands.Bot):
             if file.endswith(".py") and not file.startswith("_"):
                 try:
                     await self.load_extension(f"haffnertracker.cogs.{file[:-3]}")
-                    print(f"Loaded {file[:-3]} cog")
-                except Exception as e:
-                    print(f"Error loading {file[:-3]} cog: {e}")
+                    logger.info("Loaded %s cog", file[:-3])
+                except Exception:
+                    logger.exception("Error loading %s cog", file[:-3])
 
     async def on_ready(self) -> None:
-        print("Logged in as")
-        print(self.user.name)
-        print(self.user.id)
-        print("HaffnerTracker is now online!")
+        logger.info("Logged in as %s (%s) — HaffnerTracker is now online!", self.user.name, self.user.id)
         self.ready = True
 
     async def close(self) -> None:

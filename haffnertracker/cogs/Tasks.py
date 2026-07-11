@@ -1,3 +1,5 @@
+import logging
+
 from datetime import datetime, timedelta
 
 import discord
@@ -15,6 +17,8 @@ from ..utils.constants import (
 )
 from ..views.news import PAGE_SIZE, NewsView
 
+logger = logging.getLogger(__name__)
+
 
 class Tasks(commands.Cog):
     def __init__(self, client: commands.Bot) -> None:
@@ -28,6 +32,12 @@ class Tasks(commands.Cog):
 
     @tasks.loop(minutes=30)
     async def news_loop(self) -> None:
+        try:
+            await self._run_news_loop()
+        except Exception:
+            logger.exception("news_loop iteration failed; will retry next interval")
+
+    async def _run_news_loop(self) -> None:
         articles = await news_service.fetch_all(self.client.session, self.client.newsapi_key)
 
         new_articles = []
@@ -69,6 +79,12 @@ class Tasks(commands.Cog):
 
     @tasks.loop(minutes=15)
     async def price_loop(self) -> None:
+        try:
+            await self._run_price_loop()
+        except Exception:
+            logger.exception("price_loop iteration failed; will retry next interval")
+
+    async def _run_price_loop(self) -> None:
         tz = pytz.timezone(MARKET_TIMEZONE)
         now = datetime.now(tz)
 

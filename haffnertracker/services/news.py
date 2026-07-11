@@ -1,4 +1,6 @@
+import asyncio
 import hashlib
+import logging
 import re
 
 from dataclasses import dataclass
@@ -18,6 +20,8 @@ from ..utils.constants import (
     NEWSAPI_URL,
     PRESS_RELEASES_API_URL,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -93,28 +97,43 @@ def is_recent(article: Article, max_age_days: int = MAX_NEWS_AGE_DAYS) -> bool:
     return datetime.now(timezone.utc) - published <= timedelta(days=max_age_days)
 
 
-async def fetch_google_news(session: ClientSession) -> list[Article]:
+async def _fetch_google_news_term(session: ClientSession, term: str) -> list[Article]:
     articles: list[Article] = []
 
-    for term in NEWS_SEARCH_TERMS:
-        url = GOOGLE_NEWS_RSS_URL.format(query=quote(term))
-        async with session.get(url) as resp:
-            if resp.status != 200:
-                continue
-            body = await resp.text()
+    url = GOOGLE_NEWS_RSS_URL.format(query=quote(term))
+    async with session.get(url) as resp:
+        if resp.status != 200:
+            return articles
+        body = await resp.text()
 
-        feed = feedparser.parse(body)
-        for entry in feed.entries:
-            source = getattr(entry, "source", {})
-            source_title = source.get("title", "Google News") if isinstance(source, dict) else "Google News"
-            articles.append(
-                Article(
-                    title=entry.title,
-                    url=entry.link,
-                    source=source_title,
-                    published_at=getattr(entry, "published", None),
-                )
+    feed = feedparser.parse(body)
+    for entry in feed.entries:
+        source = getattr(entry, "source", {})
+        source_title = source.get("title", "Google News") if isinstance(source, dict) else "Google News"
+        articles.append(
+            Article(
+                title=entry.title,
+                url=entry.link,
+                source=source_title,
+                published_at=getattr(entry, "published", None),
             )
+        )
+
+    return articles
+
+
+async def fetch_google_news(session: ClientSession) -> list[Article]:
+    results = await asyncio.gather(
+        *(_fetch_google_news_term(session, term) for term in NEWS_SEARCH_TERMS),
+        return_exceptions=True,
+    )
+
+    articles: list[Article] = []
+    for term, result in zip(NEWS_SEARCH_TERMS, results):
+        if isinstance(result, BaseException):
+            logger.warning("Google News fetch failed for term %r: %r", term, result)
+            continue
+        articles.extend(result)
 
     return articles
 
@@ -181,9 +200,26 @@ async def fetch_press_releases(session: ClientSession) -> list[Article]:
 
 
 async def fetch_all(session: ClientSession, newsapi_key: str) -> list[Article]:
-    google = await fetch_google_news(session)
-    newsapi = await fetch_newsapi(session, newsapi_key)
-    press = await fetch_press_releases(session)
+    sources = (
+        ("google", fetch_google_news(session)),
+        ("newsapi", fetch_newsapi(session, newsapi_key)),
+        ("press releases", fetch_press_releases(session)),
+    )
+    results = await asyncio.gather(*(coro for _, coro in sources), return_exceptions=True)
+
+    press: list[Article] = []
+    google: list[Article] = []
+    newsapi: list[Article] = []
+    for (name, _), result in zip(sources, results):
+        if isinstance(result, BaseException):
+            logger.warning("News fetch failed for source %r: %r", name, result)
+            continue
+        if name == "press releases":
+            press = result
+        elif name == "google":
+            google = result
+        else:
+            newsapi = result
 
     seen_ids: set[str] = set()
     merged: list[Article] = []

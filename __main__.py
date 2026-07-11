@@ -13,8 +13,8 @@ load_dotenv(dotenv_path=".env")
 
 
 async def main():
-    logger = logging.getLogger("discord")
-    logger.setLevel(logging.INFO)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
 
     handler = logging.handlers.RotatingFileHandler(
         filename="discord.log",
@@ -25,7 +25,8 @@ async def main():
     dt_fmt = "%Y-%m-%d %H:%M:%S"
     formatter = logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", dt_fmt, style="{")
     handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    root_logger.addHandler(handler)
+    root_logger.addHandler(logging.StreamHandler())
 
     client = Bot()
 

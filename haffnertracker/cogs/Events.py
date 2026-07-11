@@ -1,6 +1,10 @@
+import logging
+
 import discord
 
 from discord.ext import commands
+
+logger = logging.getLogger(__name__)
 
 
 class Events(commands.Cog):
@@ -9,7 +13,7 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
-        print(f"Joined guild: {guild.name} ({guild.id})")
+        logger.info("Joined guild: %s (%s)", guild.name, guild.id)
 
 
 async def setup(client: commands.Bot) -> None:

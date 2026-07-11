@@ -1,8 +1,12 @@
+import logging
+
 from discord import Interaction, app_commands
 from discord.ext import commands
 
 from ..utils.constants import COLOR_ERROR
 from ..views.info import InfoView
+
+logger = logging.getLogger(__name__)
 
 
 class Errors(commands.Cog):
@@ -17,7 +21,7 @@ class Errors(commands.Cog):
             message = "You don't have permission to use this command."
         else:
             message = "Something went wrong while running that command."
-            print(f"Unhandled app command error: {error!r}")
+            logger.error("Unhandled app command error: %r", error, exc_info=error)
 
         view = InfoView(message, COLOR_ERROR)
         if interaction.response.is_done():
