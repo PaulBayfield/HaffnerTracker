@@ -21,8 +21,13 @@ dev = [
     "isort>=7.0.0",
     "pre-commit>=4.5.1",
     "pytest>=9.0.2",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.15.16",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
 
 [tool.ruff]
 lint.select = ["E", "W", "F", "I", "N", "Q"]
