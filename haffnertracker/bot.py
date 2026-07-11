@@ -25,6 +25,7 @@ class Bot(commands.Bot):
         super().__init__(
             command_prefix=commands.when_mentioned,
             intents=intents,
+            max_messages=None,
             help_command=None,
             owner_ids={int(environ["OWNER_ID"])} if environ.get("OWNER_ID") else None,
             allowed_mentions=discord.AllowedMentions(everyone=False, users=False, roles=False, replied_user=True),
