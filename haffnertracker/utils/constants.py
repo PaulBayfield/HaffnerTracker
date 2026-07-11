@@ -12,6 +12,8 @@ NEWS_SEARCH_TERMS = [
     "hynoca hydrogene",
 ]
 
+MAX_NEWS_AGE_DAYS = 7
+
 GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=fr&gl=FR&ceid=FR:fr"
 NEWSAPI_URL = "https://newsapi.org/v2/everything"
 PRESS_RELEASES_API_URL = "https://www.haffner-energy.com/wp-json/wp/v2/posts"

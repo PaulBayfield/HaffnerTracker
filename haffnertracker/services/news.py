@@ -1,6 +1,8 @@
 import hashlib
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from html import unescape
 from urllib.parse import quote
 
@@ -10,6 +12,7 @@ from aiohttp import ClientSession
 
 from ..utils.constants import (
     GOOGLE_NEWS_RSS_URL,
+    MAX_NEWS_AGE_DAYS,
     NEWS_SEARCH_TERMS,
     NEWSAPI_URL,
     PRESS_RELEASES_API_URL,
@@ -30,6 +33,31 @@ class Article:
     @classmethod
     def from_row(cls, row) -> "Article":
         return cls(title=row["title"], url=row["url"], source=row["source"], published_at=row["published_at"])
+
+
+def _parse_published_at(published_at: str | None) -> datetime | None:
+    if not published_at:
+        return None
+
+    try:
+        dt = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+    except ValueError:
+        try:
+            dt = parsedate_to_datetime(published_at)
+        except (TypeError, ValueError):
+            return None
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def is_recent(article: Article, max_age_days: int = MAX_NEWS_AGE_DAYS) -> bool:
+    published = _parse_published_at(article.published_at)
+    if published is None:
+        return True
+
+    return datetime.now(timezone.utc) - published <= timedelta(days=max_age_days)
 
 
 async def fetch_google_news(session: ClientSession) -> list[Article]:
@@ -114,6 +142,8 @@ async def fetch_all(session: ClientSession, newsapi_key: str) -> list[Article]:
     merged: list[Article] = []
     for article in [*press, *google, *newsapi]:
         if article.id in seen_ids:
+            continue
+        if not is_recent(article):
             continue
         seen_ids.add(article.id)
         merged.append(article)
