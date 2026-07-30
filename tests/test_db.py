@@ -32,6 +32,28 @@ async def legacy_db():
         await db.close()
 
 
+@pytest.fixture
+async def legacy_guild_config_db():
+    """A guild_config table as it looked before forum_channel_id was added."""
+    db = await aiosqlite.connect(":memory:")
+    db.row_factory = aiosqlite.Row
+    await db.execute(
+        """
+        CREATE TABLE guild_config (
+            guild_id INTEGER PRIMARY KEY,
+            news_channel_id INTEGER,
+            price_channel_id INTEGER
+        )
+        """
+    )
+    await db.execute("INSERT INTO guild_config (guild_id, news_channel_id) VALUES (?, ?)", (1, 123))
+    await db.commit()
+    try:
+        yield db
+    finally:
+        await db.close()
+
+
 class TestMigrate:
     async def test_adds_missing_columns_without_losing_existing_rows(self, legacy_db):
         await _migrate(legacy_db)
@@ -55,3 +77,16 @@ class TestMigrate:
         cursor = await legacy_db.execute("PRAGMA table_info(seen_news)")
         columns = [row["name"] for row in await cursor.fetchall()]
         assert columns.count("description") == 1
+
+    async def test_adds_forum_channel_id_without_losing_existing_rows(self, legacy_guild_config_db):
+        await _migrate(legacy_guild_config_db)
+        await legacy_guild_config_db.commit()
+
+        cursor = await legacy_guild_config_db.execute("PRAGMA table_info(guild_config)")
+        columns = {row["name"] for row in await cursor.fetchall()}
+        assert "forum_channel_id" in columns
+
+        cursor = await legacy_guild_config_db.execute("SELECT * FROM guild_config WHERE guild_id = ?", (1,))
+        row = await cursor.fetchone()
+        assert row["news_channel_id"] == 123
+        assert row["forum_channel_id"] is None

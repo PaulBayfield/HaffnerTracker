@@ -18,7 +18,7 @@ A Discord bot for keeping an eye on [Haffner Energy](https://www.haffner-energy.
 
 This repository contains the source code of the HaffnerTracker Discord bot. It's written in Python and uses the [discord.py](https://github.com/Rapptz/discord.py) library, with Discord's newer Components V2 powering every message the bot sends.
 
-News comes from Google News RSS, NewsAPI.org (optional), and Haffner Energy's own newsroom (through its WordPress REST API). LinkedIn and Twitter/X aren't wired up, since neither has a free API that's viable or safe under their terms of service. Stock data comes from Yahoo Finance via `yfinance`, with history kept locally in SQLite so the bot has its own record even if the source changes.
+News comes from Google News RSS, NewsAPI.org (optional), and Haffner Energy's own newsroom (through its WordPress REST API). LinkedIn and Twitter/X aren't wired up, since neither has a free API that's viable or safe under their terms of service. Stock data comes from Yahoo Finance via `yfinance`, with history kept locally in SQLite so the bot has its own record even if the source changes. Forum activity is scraped from the [Boursorama forum for ALHAF](https://www.boursorama.com/bourse/forum/1rPALHAF/).
 
 # ✨ • Features
 
@@ -26,9 +26,11 @@ News comes from Google News RSS, NewsAPI.org (optional), and Haffner Energy's ow
 - `/chart [period]`: a price chart (`1w`, `1mo`, `3mo`, `1y`, `all`) rendered from locally-stored history.
 - `/news latest`: fetches the latest news right now (this also happens automatically every 30 minutes).
 - `/news all`: browse every article the bot has ever seen, with a paginated Previous/Next view.
+- `/forum latest`: fetches the latest Boursorama forum comments right now (this also happens automatically every 15 minutes).
+- `/forum all`: browse every forum comment the bot has ever seen, with a paginated Previous/Next view.
 - `/alert set <kind> <threshold>`: get a DM when the price crosses a threshold you pick. `kind` is one of `price_above`, `price_below`, or `pct_change` (a daily move of at least X%).
 - `/alert list`, `/alert remove <id>`: manage your alerts.
-- `/setnewschannel`, `/setpricechannel`: admin commands to choose which channel news gets posted to.
+- `/setnewschannel`, `/setpricechannel`, `/setforumchannel`: admin commands to choose which channel news, price updates, and forum comments get posted to.
 
 # ⚙️ • Setup
 
@@ -71,6 +73,7 @@ Then, in whichever channel you want automatic updates, run:
 
 ```
 /setnewschannel #news
+/setforumchannel #forum
 ```
 
 ### 4. Docker
@@ -86,6 +89,7 @@ There's also a GitHub Actions workflow ([.github/workflows/deployment.yaml](.git
 
 - Price data comes from Yahoo Finance via `yfinance`, which is free and needs no API key. `ALHAF.PA` is a thinly-traded small cap, so expect some quote latency.
 - Price alerts are one-shot. Once triggered they deactivate automatically, so set a new one if you want another.
+- Forum comments are scraped from Boursorama's HTML, since there's no public API for it. If Boursorama changes their markup, `haffnertracker/services/boursorama.py` will need updating.
 - This isn't investment advice. The bot surfaces information; it doesn't make buy or sell decisions for you.
 
 # 📃 • Credits

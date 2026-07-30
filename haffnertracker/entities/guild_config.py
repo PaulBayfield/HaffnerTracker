@@ -32,3 +32,13 @@ class GuildConfig:
             (guild_id, channel_id),
         )
         await self.db.commit()
+
+    async def set_forum_channel(self, guild_id: int, channel_id: int) -> None:
+        await self.db.execute(
+            """
+            INSERT INTO guild_config (guild_id, forum_channel_id) VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET forum_channel_id = excluded.forum_channel_id
+            """,
+            (guild_id, channel_id),
+        )
+        await self.db.commit()

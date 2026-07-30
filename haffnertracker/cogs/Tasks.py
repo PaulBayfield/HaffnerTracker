@@ -7,6 +7,7 @@ import pytz
 
 from discord.ext import commands, tasks
 
+from ..services import boursorama as forum_service
 from ..services import news as news_service
 from ..services import stock as stock_service
 from ..utils.constants import (
@@ -15,6 +16,8 @@ from ..utils.constants import (
     MARKET_OPEN_HOUR,
     MARKET_TIMEZONE,
 )
+from ..views.forum import PAGE_SIZE as FORUM_PAGE_SIZE
+from ..views.forum import ForumView
 from ..views.news import PAGE_SIZE, NewsView
 
 logger = logging.getLogger(__name__)
@@ -25,10 +28,12 @@ class Tasks(commands.Cog):
         self.client = client
         self.news_loop.start()
         self.price_loop.start()
+        self.forum_loop.start()
 
     def cog_unload(self) -> None:
         self.news_loop.cancel()
         self.price_loop.cancel()
+        self.forum_loop.cancel()
 
     @tasks.loop(minutes=30)
     async def news_loop(self) -> None:
@@ -76,6 +81,54 @@ class Tasks(commands.Cog):
     @news_loop.before_loop
     async def before_news_loop(self) -> None:
         await self.client.wait_until_ready()
+
+    @tasks.loop(minutes=15)
+    async def forum_loop(self) -> None:
+        try:
+            await self._run_forum_loop()
+        except Exception:
+            logger.exception("forum_loop iteration failed; will retry next interval")
+
+    async def _run_forum_loop(self) -> None:
+        comments = await forum_service.fetch_all_comments(self.client.session)
+
+        new_comments = []
+        for comment in comments:
+            if await self.client.entities.forum.is_seen(comment.id):
+                continue
+            await self.client.entities.forum.mark_seen(
+                comment.id, comment.thread_id, comment.thread_title, comment.author, comment.text, comment.url
+            )
+            new_comments.append(comment)
+
+        if not new_comments:
+            return
+
+        configs = await self.client.entities.guild_config.get_all()
+        for config in configs:
+            channel_id = config["forum_channel_id"]
+            if not channel_id:
+                continue
+
+            channel = self.client.get_channel(channel_id)
+            if channel is None:
+                continue
+
+            ordered = list(reversed(new_comments))
+            for i in range(0, len(ordered), FORUM_PAGE_SIZE):
+                chunk = ordered[i : i + FORUM_PAGE_SIZE]
+                await channel.send(view=ForumView(chunk))
+
+    @forum_loop.before_loop
+    async def before_forum_loop(self) -> None:
+        await self.client.wait_until_ready()
+
+        if await self.client.entities.forum.count() == 0:
+            comments = await forum_service.fetch_all_comments(self.client.session)
+            for comment in comments:
+                await self.client.entities.forum.mark_seen(
+                    comment.id, comment.thread_id, comment.thread_title, comment.author, comment.text, comment.url
+                )
 
     @tasks.loop(minutes=15)
     async def price_loop(self) -> None:

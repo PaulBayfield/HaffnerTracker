@@ -18,6 +18,9 @@ GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=fr&gl=FR&
 NEWSAPI_URL = "https://newsapi.org/v2/everything"
 PRESS_RELEASES_API_URL = "https://www.haffner-energy.com/wp-json/wp/v2/posts"
 
+BOURSORAMA_FORUM_URL = "https://www.boursorama.com/bourse/forum/1rPALHAF/"
+FORUM_MAX_THREADS_PER_POLL = 20
+
 CHART_PERIODS = {
     "1w": "5d",
     "1mo": "1mo",

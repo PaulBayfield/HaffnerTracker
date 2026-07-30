@@ -26,6 +26,16 @@ class Admin(commands.Cog):
             view=InfoView(f"Price channel set to {channel.mention}."), ephemeral=True
         )
 
+    @app_commands.command(
+        name="setforumchannel", description="Set the channel where new Boursorama forum comments are posted"
+    )
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def set_forum_channel(self, interaction: Interaction, channel: discord.TextChannel) -> None:
+        await self.client.entities.guild_config.set_forum_channel(interaction.guild_id, channel.id)
+        await interaction.response.send_message(
+            view=InfoView(f"Forum channel set to {channel.mention}."), ephemeral=True
+        )
+
     @commands.command(name="sync")
     @commands.is_owner()
     async def sync(self, ctx: commands.Context) -> None:
