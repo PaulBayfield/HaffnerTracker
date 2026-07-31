@@ -7,7 +7,6 @@ from discord.ext import commands
 
 from ..services import stock as stock_service
 from ..utils.charts import render_price_chart
-from ..utils.constants import CHART_PERIODS
 from ..views.chart import ChartView
 from ..views.info import InfoView
 from ..views.price import PriceView
@@ -28,11 +27,11 @@ class Stock(commands.Cog):
     async def chart(
         self,
         interaction: Interaction,
-        period: Literal["1w", "1mo", "3mo", "1y", "all"] = "1mo",
+        period: Literal["6h", "1d", "1w", "1mo", "3mo", "1y", "all"] = "1mo",
     ) -> None:
         await interaction.response.defer()
 
-        hist = await stock_service.get_history(CHART_PERIODS[period])
+        hist = await stock_service.get_chart_history(period)
         if hist.empty:
             await interaction.followup.send(view=InfoView("No price data available for that period."))
             return

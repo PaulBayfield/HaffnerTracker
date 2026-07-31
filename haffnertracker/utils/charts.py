@@ -1,4 +1,16 @@
+from datetime import timedelta
 from io import BytesIO
+
+
+def _date_format(dates: list) -> str:
+    """Picks a tighter x-axis format for intraday ranges, since "%d %b" alone would repeat
+    the same day label across every point."""
+    span = dates[-1] - dates[0]
+    if span <= timedelta(days=1):
+        return "%H:%M"
+    if span <= timedelta(days=8):
+        return "%d %b %Hh"
+    return "%d %b"
 
 
 def render_price_chart(dates: list, closes: list) -> BytesIO:
@@ -18,7 +30,7 @@ def render_price_chart(dates: list, closes: list) -> BytesIO:
 
     ax.set_ylabel("EUR")
     ax.grid(True, alpha=0.25)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter(_date_format(dates)))
     fig.autofmt_xdate()
 
     buf = BytesIO()

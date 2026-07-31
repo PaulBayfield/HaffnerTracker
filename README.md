@@ -23,7 +23,7 @@ News comes from Google News RSS, NewsAPI.org (optional), and Haffner Energy's ow
 # ✨ • Features
 
 - `/price`: current price and daily change.
-- `/chart [period]`: a price chart (`1w`, `1mo`, `3mo`, `1y`, `all`) rendered from locally-stored history.
+- `/chart [period]`: a price chart (`6h`, `1d`, `1w`, `1mo`, `3mo`, `1y`, `all`) — `6h` and `1d` are intraday, the rest are daily closes.
 - `/news latest`: fetches the latest news right now (this also happens automatically every 30 minutes).
 - `/news all`: browse every article the bot has ever seen, with a paginated Previous/Next view.
 - `/forum latest`: fetches the latest Boursorama forum comments right now (this also happens automatically every 15 minutes).

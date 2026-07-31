@@ -22,12 +22,15 @@ OFFICIAL_NEWS_SOURCE = "Haffner Energy Newsroom"
 BOURSORAMA_FORUM_URL = "https://www.boursorama.com/bourse/forum/1rPALHAF/"
 FORUM_MAX_THREADS_PER_POLL = 20
 
-CHART_PERIODS = {
-    "1w": "5d",
-    "1mo": "1mo",
-    "3mo": "3mo",
-    "1y": "1y",
-    "all": "max",
+# range key -> (yfinance period, yfinance interval, trailing window in hours to trim to, or None to keep everything)
+CHART_RANGES: dict[str, tuple[str, str, int | None]] = {
+    "6h": ("5d", "5m", 6),
+    "1d": ("5d", "15m", 24),
+    "1w": ("5d", "1d", None),
+    "1mo": ("1mo", "1d", None),
+    "3mo": ("3mo", "1d", None),
+    "1y": ("1y", "1d", None),
+    "all": ("max", "1d", None),
 }
 
 COLOR_UP = 0x2ECC71
