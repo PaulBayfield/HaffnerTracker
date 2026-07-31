@@ -17,6 +17,7 @@ MAX_NEWS_AGE_DAYS = 7
 GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss/search?q={query}&hl=fr&gl=FR&ceid=FR:fr"
 NEWSAPI_URL = "https://newsapi.org/v2/everything"
 PRESS_RELEASES_API_URL = "https://www.haffner-energy.com/wp-json/wp/v2/posts"
+OFFICIAL_NEWS_SOURCE = "Haffner Energy Newsroom"
 
 BOURSORAMA_FORUM_URL = "https://www.boursorama.com/bourse/forum/1rPALHAF/"
 FORUM_MAX_THREADS_PER_POLL = 20
@@ -33,3 +34,4 @@ COLOR_UP = 0x2ECC71
 COLOR_DOWN = 0xE74C3C
 COLOR_NEUTRAL = 0x5865F2
 COLOR_ERROR = 0xE74C3C
+COLOR_OFFICIAL = 0xF1C40F

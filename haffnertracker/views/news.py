@@ -6,7 +6,7 @@ import discord
 
 from ..entities.entities import Entities
 from ..services.news import Article, parse_published_at
-from ..utils.constants import COLOR_NEUTRAL
+from ..utils.constants import COLOR_NEUTRAL, COLOR_OFFICIAL, OFFICIAL_NEWS_SOURCE
 from .info import InfoView
 
 PAGE_SIZE = 5
@@ -26,11 +26,17 @@ def _safe_article_url(url: str) -> str | None:
     return None
 
 
+def _is_official(article: Article) -> bool:
+    return article.source == OFFICIAL_NEWS_SOURCE
+
+
 def _article_text(article: Article) -> str:
     published = parse_published_at(article.published_at)
-    meta = f"-# {article.source} • <t:{int(published.timestamp())}:R>" if published else f"-# {article.source}"
+    source_label = f"📣 {article.source}" if _is_official(article) else article.source
+    meta = f"-# {source_label} • <t:{int(published.timestamp())}:R>" if published else f"-# {source_label}"
 
-    lines = [f"**{article.title}**", meta]
+    title = f"**📣 {article.title}**" if _is_official(article) else f"**{article.title}**"
+    lines = [title, meta]
     if article.description:
         lines.append(article.description)
 
@@ -58,14 +64,36 @@ def _article_sections(articles: list[Article]) -> list[discord.ui.Item]:
     return items
 
 
+def _article_containers(articles: list[Article]) -> list[discord.ui.Container]:
+    """Splits articles into runs of consecutive official/non-official items, each its own
+    accent-coloured container, so official Haffner Energy updates stand out from press coverage."""
+    containers: list[discord.ui.Container] = []
+    group: list[Article] = []
+
+    def _flush() -> None:
+        if group:
+            color = COLOR_OFFICIAL if _is_official(group[0]) else COLOR_NEUTRAL
+            containers.append(discord.ui.Container(*_article_sections(group), accent_colour=color))
+
+    for article in articles:
+        if group and _is_official(group[0]) != _is_official(article):
+            _flush()
+            group = []
+        group.append(article)
+    _flush()
+
+    return containers
+
+
 class NewsView(discord.ui.LayoutView):
     """A static digest of news articles, used for the /news latest command and the auto-post loop."""
 
     def __init__(self, articles: list[Article], heading: str = "📰 New Haffner Energy news") -> None:
         super().__init__()
 
-        children = [discord.ui.TextDisplay(f"### {heading}"), *_article_sections(articles)]
-        self.add_item(discord.ui.Container(*children, accent_colour=COLOR_NEUTRAL))
+        self.add_item(discord.ui.TextDisplay(f"### {heading}"))
+        for container in _article_containers(articles):
+            self.add_item(container)
 
 
 class NewsAllView(discord.ui.LayoutView):
@@ -82,10 +110,10 @@ class NewsAllView(discord.ui.LayoutView):
         self.message: discord.Message | None = None
 
         heading = f"### 🗞️ All Haffner Energy news — page {self.page + 1}/{self.total_pages}"
-        children = [discord.ui.TextDisplay(heading), *_article_sections(articles)]
-        children.append(self._NavigationRow(self))
-
-        self.add_item(discord.ui.Container(*children, accent_colour=COLOR_NEUTRAL))
+        self.add_item(discord.ui.TextDisplay(heading))
+        for container in _article_containers(articles):
+            self.add_item(container)
+        self.add_item(self._NavigationRow(self))
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id == self.author_id:

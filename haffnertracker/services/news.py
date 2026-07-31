@@ -18,6 +18,7 @@ from ..utils.constants import (
     MAX_NEWS_AGE_DAYS,
     NEWS_SEARCH_TERMS,
     NEWSAPI_URL,
+    OFFICIAL_NEWS_SOURCE,
     PRESS_RELEASES_API_URL,
 )
 
@@ -189,7 +190,7 @@ async def fetch_press_releases(session: ClientSession) -> list[Article]:
             Article(
                 title=unescape(item["title"]["rendered"]),
                 url=item["link"],
-                source="Haffner Energy Newsroom",
+                source=OFFICIAL_NEWS_SOURCE,
                 published_at=item.get("date"),
                 description=description,
                 image_url=image_url,

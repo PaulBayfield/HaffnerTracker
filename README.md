@@ -18,7 +18,7 @@ A Discord bot for keeping an eye on [Haffner Energy](https://www.haffner-energy.
 
 This repository contains the source code of the HaffnerTracker Discord bot. It's written in Python and uses the [discord.py](https://github.com/Rapptz/discord.py) library, with Discord's newer Components V2 powering every message the bot sends.
 
-News comes from Google News RSS, NewsAPI.org (optional), and Haffner Energy's own newsroom (through its WordPress REST API). LinkedIn and Twitter/X aren't wired up, since neither has a free API that's viable or safe under their terms of service. Stock data comes from Yahoo Finance via `yfinance`, with history kept locally in SQLite so the bot has its own record even if the source changes. Forum activity is scraped from the [Boursorama forum for ALHAF](https://www.boursorama.com/bourse/forum/1rPALHAF/).
+News comes from Google News RSS, NewsAPI.org (optional), and Haffner Energy's own newsroom (through its WordPress REST API) — official newsroom posts are highlighted in gold with a 📣 badge to stand out from third-party press coverage. LinkedIn and Twitter/X aren't wired up, since neither has a free API that's viable or safe under their terms of service. Stock data comes from Yahoo Finance via `yfinance`, with history kept locally in SQLite so the bot has its own record even if the source changes. Forum activity is scraped from the [Boursorama forum for ALHAF](https://www.boursorama.com/bourse/forum/1rPALHAF/).
 
 # ✨ • Features
 
