@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+.pytest_cache
+.ruff_cache
+__pycache__
+*.py[oc]
+
+tests
+data
+*.log
+
+.env
+.env.example
+
+README.md
+LICENSE
