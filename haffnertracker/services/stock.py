@@ -1,28 +1,17 @@
 import asyncio
+import logging
 
-from dataclasses import dataclass
 from datetime import timedelta
 
 import yfinance as yf
 
+from aiohttp import ClientSession
+
 from ..utils.constants import CHART_RANGES, TICKER
+from . import boursorama
+from .quote import Quote
 
-
-@dataclass
-class Quote:
-    price: float
-    previous_close: float
-    currency: str
-
-    @property
-    def change(self) -> float:
-        return self.price - self.previous_close
-
-    @property
-    def change_pct(self) -> float:
-        if self.previous_close == 0:
-            return 0.0
-        return (self.change / self.previous_close) * 100
+logger = logging.getLogger(__name__)
 
 
 def _fetch_quote() -> Quote:
@@ -41,7 +30,17 @@ def _fetch_history(period: str, interval: str = "1d"):
     return ticker.history(period=period, interval=interval)
 
 
-async def get_quote() -> Quote:
+async def get_quote(session: ClientSession) -> Quote:
+    """Return the real-time Boursorama quote, falling back to (delayed) Yahoo Finance if the scrape fails."""
+    try:
+        quote = await boursorama.fetch_quote(session)
+    except Exception:
+        logger.warning("Boursorama quote fetch failed; falling back to yfinance", exc_info=True)
+        quote = None
+
+    if quote is not None:
+        return quote
+
     return await asyncio.to_thread(_fetch_quote)
 
 

@@ -84,9 +84,10 @@ class TestMigrate:
 
         cursor = await legacy_guild_config_db.execute("PRAGMA table_info(guild_config)")
         columns = {row["name"] for row in await cursor.fetchall()}
-        assert "forum_channel_id" in columns
+        assert {"forum_channel_id", "price_message_id"}.issubset(columns)
 
         cursor = await legacy_guild_config_db.execute("SELECT * FROM guild_config WHERE guild_id = ?", (1,))
         row = await cursor.fetchone()
         assert row["news_channel_id"] == 123
         assert row["forum_channel_id"] is None
+        assert row["price_message_id"] is None

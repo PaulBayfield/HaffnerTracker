@@ -1,10 +1,13 @@
 from haffnertracker.services.boursorama import (
     ForumComment,
     ForumThread,
+    _parse_french_number,
     _truncate,
     fetch_active_threads,
     fetch_all_comments,
+    fetch_quote,
     fetch_thread_comments,
+    parse_quote,
 )
 
 THREAD_LIST_HTML = """
@@ -122,3 +125,56 @@ class TestFetchAllComments:
         comments = await fetch_all_comments(session=None)
 
         assert [c.id for c in comments] == ["c1"]
+
+
+QUOTE_HTML = """
+<div class="c-ticker__item" data-ist="1rPCAC"><span data-ist-last>8 092,28</span></div>
+<div class="c-faceplate is-negative" data-faceplate data-ist="1rPALHAF"
+     data-ist-init='{"symbol":"1rPALHAF","high":0.794,"low":0.74,"previousClose":0.79,"totalVolume":2747660,
+                     "tradeDate":"2026-09-25 09:58:32","last":0.788}'>
+    <span class="c-instrument c-instrument--last" data-ist-last>0,7880</span>
+    <span class="c-instrument c-instrument--open" data-ist-open>0,7600</span>
+</div>
+"""
+
+
+class TestParseFrenchNumber:
+    def test_handles_thousands_spaces_and_decimal_comma(self):
+        assert _parse_french_number("2 747 660") == 2747660
+        assert _parse_french_number("0,7880") == 0.788
+        assert _parse_french_number("8 092,28") == 8092.28
+
+    def test_returns_none_for_garbage(self):
+        assert _parse_french_number("--") is None
+
+
+class TestParseQuote:
+    def test_reads_the_haffner_faceplate_and_ignores_other_instruments(self):
+        quote = parse_quote(QUOTE_HTML)
+
+        assert quote is not None
+        assert quote.price == 0.788
+        assert quote.previous_close == 0.79
+        assert quote.open == 0.76
+        assert quote.high == 0.794
+        assert quote.low == 0.74
+        assert quote.volume == 2747660
+        assert quote.source == "Boursorama"
+        assert quote.traded_at.isoformat() == "2026-09-25T09:58:32+02:00"
+        assert round(quote.change_pct, 2) == -0.25
+
+    def test_returns_none_when_faceplate_is_missing(self):
+        assert parse_quote("<html><body>Maintenance</body></html>") is None
+
+    def test_returns_none_when_init_json_is_broken(self):
+        html = """<div class="c-faceplate" data-ist="1rPALHAF" data-ist-init='{"last":'></div>"""
+        assert parse_quote(html) is None
+
+
+class TestFetchQuote:
+    async def test_fetches_and_parses_the_quote_page(self):
+        session = _FakeSession({"https://www.boursorama.com/cours/1rPALHAF/": QUOTE_HTML})
+
+        quote = await fetch_quote(session)
+
+        assert quote.price == 0.788

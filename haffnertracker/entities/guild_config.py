@@ -27,9 +27,16 @@ class GuildConfig:
         await self.db.execute(
             """
             INSERT INTO guild_config (guild_id, price_channel_id) VALUES (?, ?)
-            ON CONFLICT(guild_id) DO UPDATE SET price_channel_id = excluded.price_channel_id
+            ON CONFLICT(guild_id) DO UPDATE SET price_channel_id = excluded.price_channel_id, price_message_id = NULL
             """,
             (guild_id, channel_id),
+        )
+        await self.db.commit()
+
+    async def set_price_message(self, guild_id: int, message_id: int | None) -> None:
+        await self.db.execute(
+            "UPDATE guild_config SET price_message_id = ? WHERE guild_id = ?",
+            (message_id, guild_id),
         )
         await self.db.commit()
 

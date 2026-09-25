@@ -5,6 +5,8 @@ MARKET_TIMEZONE = "Europe/Paris"
 MARKET_OPEN_HOUR = 9
 MARKET_CLOSE_HOUR = 17
 MARKET_CLOSE_MINUTE = 30
+# Keep polling a little past the close so the closing auction (~17:35) is captured.
+MARKET_CLOSE_GRACE_MINUTES = 10
 
 NEWS_SEARCH_TERMS = [
     "Haffner Energy",
@@ -19,6 +21,8 @@ NEWSAPI_URL = "https://newsapi.org/v2/everything"
 PRESS_RELEASES_API_URL = "https://www.haffner-energy.com/wp-json/wp/v2/posts"
 OFFICIAL_NEWS_SOURCE = "Haffner Energy Newsroom"
 
+BOURSORAMA_SYMBOL = "1rPALHAF"
+BOURSORAMA_QUOTE_URL = "https://www.boursorama.com/cours/1rPALHAF/"
 BOURSORAMA_FORUM_URL = "https://www.boursorama.com/bourse/forum/1rPALHAF/"
 FORUM_MAX_THREADS_PER_POLL = 20
 

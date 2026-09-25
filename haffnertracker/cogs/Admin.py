@@ -18,7 +18,9 @@ class Admin(commands.Cog):
             view=InfoView(f"News channel set to {channel.mention}."), ephemeral=True
         )
 
-    @app_commands.command(name="setpricechannel", description="Set the channel where daily price updates are posted")
+    @app_commands.command(
+        name="setpricechannel", description="Set the channel for the live price message (updated every minute)"
+    )
     @app_commands.checks.has_permissions(manage_guild=True)
     async def set_price_channel(self, interaction: Interaction, channel: discord.TextChannel) -> None:
         await self.client.entities.guild_config.set_price_channel(interaction.guild_id, channel.id)

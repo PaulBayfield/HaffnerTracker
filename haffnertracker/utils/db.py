@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS guild_config (
     guild_id INTEGER PRIMARY KEY,
     news_channel_id INTEGER,
     price_channel_id INTEGER,
-    forum_channel_id INTEGER
+    forum_channel_id INTEGER,
+    price_message_id INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS seen_forum_comments (
@@ -80,5 +81,8 @@ async def _migrate(db: aiosqlite.Connection) -> None:
     cursor = await db.execute("PRAGMA table_info(guild_config)")
     guild_config_columns = {row["name"] for row in await cursor.fetchall()}
 
-    if guild_config_columns and "forum_channel_id" not in guild_config_columns:
-        await db.execute("ALTER TABLE guild_config ADD COLUMN forum_channel_id INTEGER")
+    if guild_config_columns:
+        if "forum_channel_id" not in guild_config_columns:
+            await db.execute("ALTER TABLE guild_config ADD COLUMN forum_channel_id INTEGER")
+        if "price_message_id" not in guild_config_columns:
+            await db.execute("ALTER TABLE guild_config ADD COLUMN price_message_id INTEGER")

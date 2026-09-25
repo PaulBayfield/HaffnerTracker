@@ -1,13 +1,24 @@
 import asyncio
+import json
 import logging
 
 from dataclasses import dataclass
+from datetime import datetime
 from urllib.parse import urljoin
+
+import pytz
 
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 
-from ..utils.constants import BOURSORAMA_FORUM_URL, FORUM_MAX_THREADS_PER_POLL
+from ..utils.constants import (
+    BOURSORAMA_FORUM_URL,
+    BOURSORAMA_QUOTE_URL,
+    BOURSORAMA_SYMBOL,
+    FORUM_MAX_THREADS_PER_POLL,
+    MARKET_TIMEZONE,
+)
+from .quote import Quote
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +53,68 @@ class ForumComment:
             text=row["text"],
             url=row["url"],
         )
+
+
+def _parse_french_number(text: str) -> float | None:
+    """Parse numbers like "2 747 660" or "0,7880" as shown on Boursorama."""
+    cleaned = "".join(text.split()).replace(",", ".")
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def parse_quote(body: str) -> Quote | None:
+    """Extract the Haffner quote from a Boursorama quote page.
+
+    The page also lists other instruments (indices, FX) using the same data-ist-* attributes, so everything
+    is scoped to the faceplate for our symbol.
+    """
+    soup = BeautifulSoup(body, "html.parser")
+
+    faceplate = soup.select_one(f"div.c-faceplate[data-ist='{BOURSORAMA_SYMBOL}']")
+    if faceplate is None or not faceplate.get("data-ist-init"):
+        return None
+
+    try:
+        data = json.loads(faceplate["data-ist-init"])
+        price = float(data["last"])
+        previous_close = float(data["previousClose"])
+    except (ValueError, KeyError, TypeError):
+        return None
+
+    open_tag = faceplate.select_one("[data-ist-open]")
+    open_price = _parse_french_number(open_tag.get_text()) if open_tag else None
+
+    traded_at = None
+    if trade_date := data.get("tradeDate"):
+        try:
+            traded_at = pytz.timezone(MARKET_TIMEZONE).localize(datetime.strptime(trade_date, "%Y-%m-%d %H:%M:%S"))
+        except ValueError:
+            pass
+
+    volume = data.get("totalVolume")
+
+    return Quote(
+        price=price,
+        previous_close=previous_close,
+        currency="EUR",
+        source="Boursorama",
+        open=open_price,
+        high=float(data["high"]) if data.get("high") is not None else None,
+        low=float(data["low"]) if data.get("low") is not None else None,
+        volume=int(volume) if volume is not None else None,
+        traded_at=traded_at,
+    )
+
+
+async def fetch_quote(session: ClientSession) -> Quote | None:
+    async with session.get(BOURSORAMA_QUOTE_URL, headers=HEADERS) as resp:
+        if resp.status != 200:
+            return None
+        body = await resp.text()
+
+    return parse_quote(body)
 
 
 def _truncate(text: str, max_length: int = TEXT_MAX_LENGTH) -> str:

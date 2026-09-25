@@ -73,6 +73,7 @@ Then, in whichever channel you want automatic updates, run:
 
 ```
 /setnewschannel #news
+/setpricechannel #price
 /setforumchannel #forum
 ```
 
@@ -87,7 +88,7 @@ There's also a GitHub Actions workflow ([.github/workflows/deployment.yaml](.git
 
 # 📄 • Notes
 
-- Price data comes from Yahoo Finance via `yfinance`, which is free and needs no API key. `ALHAF.PA` is a thinly-traded small cap, so expect some quote latency.
+- Live quotes (`/price`, the price channel, alerts) are scraped from [Boursorama](https://www.boursorama.com/cours/1rPALHAF/) in real time, falling back to Yahoo Finance if that fails. Charts and history come from Yahoo Finance via `yfinance`, which is delayed around 15 minutes.
 - Price alerts are one-shot. Once triggered they deactivate automatically, so set a new one if you want another.
 - Forum comments are scraped from Boursorama's HTML, since there's no public API for it. If Boursorama changes their markup, `haffnertracker/services/boursorama.py` will need updating.
 - This isn't investment advice. The bot surfaces information; it doesn't make buy or sell decisions for you.

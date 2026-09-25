@@ -20,7 +20,7 @@ class Stock(commands.Cog):
     async def price(self, interaction: Interaction) -> None:
         await interaction.response.defer()
 
-        quote = await stock_service.get_quote()
+        quote = await stock_service.get_quote(self.client.session)
         await interaction.followup.send(view=PriceView(self.client, quote))
 
     @app_commands.command(name="chart", description="Show a Haffner Energy price chart")
