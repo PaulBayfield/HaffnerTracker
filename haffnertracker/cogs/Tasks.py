@@ -30,6 +30,7 @@ class Tasks(commands.Cog):
     def __init__(self, client: commands.Bot) -> None:
         self.client = client
         self._persisted_on: str | None = None
+        self._last_quote: Quote | None = None
         self.news_loop.start()
         self.price_loop.start()
         self.forum_loop.start()
@@ -152,13 +153,16 @@ class Tasks(commands.Cog):
         )
 
         if not market_hours:
-            # Outside market hours the live message is left as-is; only create it for guilds that don't have one yet.
-            if await self._guilds_missing_price_message():
-                quote = await stock_service.get_quote(self.client.session)
-                await self.update_price_messages(quote, only_missing=True)
+            # The price doesn't change outside market hours, so don't scrape; just keep the last known quote at the
+            # bottom of the channel if someone has posted below it (or it doesn't exist yet).
+            if await self._any_stale_price_message():
+                quote = self._last_quote or await stock_service.get_quote(self.client.session)
+                self._last_quote = quote
+                await self.update_price_messages(quote, only_stale=True)
             return
 
         quote = await stock_service.get_quote(self.client.session)
+        self._last_quote = quote
         await self.check_alerts(quote)
         await self.update_price_messages(quote)
         await self.persist_quote(quote, now, market_close)
@@ -218,17 +222,25 @@ class Tasks(commands.Cog):
             int(row["Volume"]),
         )
 
-    async def _guilds_missing_price_message(self) -> bool:
-        configs = await self.client.entities.guild_config.get_all()
-        return any(
-            config["price_channel_id"]
-            and not config["price_message_id"]
-            and self.client.get_channel(config["price_channel_id"]) is not None
-            for config in configs
-        )
+    def _price_message_is_stale(self, config, channel) -> bool:
+        """True when the live price message is missing or someone has posted below it."""
+        message_id = config["price_message_id"]
+        return not message_id or channel.last_message_id != message_id
 
-    async def update_price_messages(self, quote: Quote, only_missing: bool = False) -> None:
-        """Keep a single live price message per guild, editing it in place rather than posting a new one."""
+    async def _any_stale_price_message(self) -> bool:
+        configs = await self.client.entities.guild_config.get_all()
+        for config in configs:
+            channel = self.client.get_channel(config["price_channel_id"]) if config["price_channel_id"] else None
+            if channel is not None and self._price_message_is_stale(config, channel):
+                return True
+        return False
+
+    async def update_price_messages(self, quote: Quote, only_stale: bool = False) -> None:
+        """Keep a single live price message at the bottom of each guild's price channel.
+
+        If it's still the latest message it's edited in place; if anything has been posted below it, it's deleted
+        and re-sent so it stays at the bottom.
+        """
         configs = await self.client.entities.guild_config.get_all()
 
         for config in configs:
@@ -236,17 +248,18 @@ class Tasks(commands.Cog):
             if not channel_id:
                 continue
 
-            message_id = config["price_message_id"]
-            if only_missing and message_id:
-                continue
-
             channel = self.client.get_channel(channel_id)
             if channel is None:
                 continue
 
+            message_id = config["price_message_id"]
+            stale = self._price_message_is_stale(config, channel)
+            if only_stale and not stale:
+                continue
+
             view = PriceView(self.client, quote)
 
-            if message_id:
+            if message_id and not stale:
                 try:
                     await channel.get_partial_message(message_id).edit(view=view)
                     continue
@@ -263,6 +276,12 @@ class Tasks(commands.Cog):
                 continue
 
             await self.client.entities.guild_config.set_price_message(config["guild_id"], message.id)
+
+            if message_id and stale:
+                try:
+                    await channel.get_partial_message(message_id).delete()
+                except discord.HTTPException:
+                    pass  # already gone, or no permission to delete it
 
     async def check_alerts(self, quote: stock_service.Quote) -> None:
         alerts = await self.client.entities.alerts.list_active()
