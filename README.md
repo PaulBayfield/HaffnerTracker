@@ -88,6 +88,7 @@ There's also a GitHub Actions workflow ([.github/workflows/deployment.yaml](.git
 
 # 📄 • Notes
 
+- A `GET /status` health endpoint is served by [dPyStatus](https://github.com/PaulBayfield/dPyStatus) (port `8080`, configurable via `DPYSTATUS_*` in `.env`). Its `extra` field carries Haffner state: the live quote and latest daily row, the latest forum comments and news, active alerts, configured channels, and the health of the background loops. It only reads from memory and the local database, so polling it never hits Boursorama or Yahoo.
 - Live quotes (`/price`, the price channel, alerts) are scraped from [Boursorama](https://www.boursorama.com/cours/1rPALHAF/) in real time, falling back to Yahoo Finance if that fails. Charts and history come from Yahoo Finance via `yfinance`, which is delayed around 15 minutes.
 - Price alerts are one-shot. Once triggered they deactivate automatically, so set a new one if you want another.
 - Forum comments are scraped from Boursorama's HTML, since there's no public API for it. If Boursorama changes their markup, `haffnertracker/services/boursorama.py` will need updating.

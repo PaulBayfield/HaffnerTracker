@@ -10,6 +10,7 @@ dependencies = [
     "aiosqlite>=0.21.0",
     "beautifulsoup4>=4.15.0",
     "discord-py>=2.5.2",
+    "dpystatus",
     "feedparser>=6.0.11",
     "matplotlib>=3.10.0",
     "python-dotenv>=1.1.1",
@@ -51,3 +52,6 @@ profile = "black"
 lines_between_types = 1
 line_length = 120
 py_version = 313
+
+[tool.uv.sources]
+dpystatus = { url = "https://github.com/PaulBayfield/dPyStatus/archive/9bb139245f726de5760f8fc7030054bd449c90d1.tar.gz" }

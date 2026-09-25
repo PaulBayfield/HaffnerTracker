@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from .entities.entities import Entities
 from .utils.db import connect
+from .utils.status import register_extras
 
 load_dotenv(dotenv_path=".env")
 
@@ -50,6 +51,12 @@ class Bot(commands.Bot):
                     logger.info("Loaded %s cog", file[:-3])
                 except Exception:
                     logger.exception("Error loading %s cog", file[:-3])
+
+        try:
+            await self.load_extension("dPyStatus.extension")
+            register_extras(self, self.get_cog("dPyStatus").server)
+        except Exception:
+            logger.exception("Error loading the dPyStatus status endpoint")
 
     async def on_ready(self) -> None:
         logger.info("Logged in as %s (%s) — HaffnerTracker is now online!", self.user.name, self.user.id)

@@ -27,12 +27,14 @@ ENV PATH="/app/.venv/bin:$PATH" \
     MPLBACKEND=Agg \
     OMP_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
-    NUMEXPR_NUM_THREADS=1
+    NUMEXPR_NUM_THREADS=1     DPYSTATUS_HOST=0.0.0.0     DPYSTATUS_PORT=8080
 
 COPY --from=builder /app/.venv ./.venv
 COPY __main__.py ./
 COPY haffnertracker ./haffnertracker
 
 VOLUME ["/app/data"]
+
+EXPOSE 8080
 
 CMD ["python", "__main__.py"]

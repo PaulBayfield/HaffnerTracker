@@ -3,7 +3,6 @@ import logging
 from datetime import datetime, timedelta
 
 import discord
-import pytz
 
 from discord.ext import commands, tasks
 
@@ -11,13 +10,7 @@ from ..services import boursorama as forum_service
 from ..services import news as news_service
 from ..services import stock as stock_service
 from ..services.quote import Quote
-from ..utils.constants import (
-    MARKET_CLOSE_GRACE_MINUTES,
-    MARKET_CLOSE_HOUR,
-    MARKET_CLOSE_MINUTE,
-    MARKET_OPEN_HOUR,
-    MARKET_TIMEZONE,
-)
+from ..utils.market import is_market_hours, market_close_time, market_now
 from ..views.forum import PAGE_SIZE as FORUM_PAGE_SIZE
 from ..views.forum import ForumView
 from ..views.news import PAGE_SIZE, NewsView
@@ -30,7 +23,7 @@ class Tasks(commands.Cog):
     def __init__(self, client: commands.Bot) -> None:
         self.client = client
         self._persisted_on: str | None = None
-        self._last_quote: Quote | None = None
+        self.last_quote: Quote | None = None
         self.news_loop.start()
         self.price_loop.start()
         self.forum_loop.start()
@@ -143,29 +136,22 @@ class Tasks(commands.Cog):
             logger.exception("price_loop iteration failed; will retry next interval")
 
     async def _run_price_loop(self) -> None:
-        tz = pytz.timezone(MARKET_TIMEZONE)
-        now = datetime.now(tz)
+        now = market_now()
 
-        market_open = now.replace(hour=MARKET_OPEN_HOUR, minute=0, second=0, microsecond=0)
-        market_close = now.replace(hour=MARKET_CLOSE_HOUR, minute=MARKET_CLOSE_MINUTE, second=0, microsecond=0)
-        market_hours = now.weekday() < 5 and market_open <= now <= market_close + timedelta(
-            minutes=MARKET_CLOSE_GRACE_MINUTES
-        )
-
-        if not market_hours:
+        if not is_market_hours(now):
             # The price doesn't change outside market hours, so don't scrape; just keep the last known quote at the
             # bottom of the channel if someone has posted below it (or it doesn't exist yet).
             if await self._any_stale_price_message():
-                quote = self._last_quote or await stock_service.get_quote(self.client.session)
-                self._last_quote = quote
+                quote = self.last_quote or await stock_service.get_quote(self.client.session)
+                self.last_quote = quote
                 await self.update_price_messages(quote, only_stale=True)
             return
 
         quote = await stock_service.get_quote(self.client.session)
-        self._last_quote = quote
+        self.last_quote = quote
         await self.check_alerts(quote)
         await self.update_price_messages(quote)
-        await self.persist_quote(quote, now, market_close)
+        await self.persist_quote(quote, now, market_close_time(now))
 
     @price_loop.before_loop
     async def before_price_loop(self) -> None:
